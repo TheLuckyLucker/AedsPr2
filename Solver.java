@@ -16,7 +16,7 @@ public class Solver {
     private AdjacencyMatrix graph;
     private int totalNumber;
     private boolean done;
-    private boolean winner;     // true if girl, false if boy
+    private boolean girlWins;     // true if girl, false if boy
 
     public Solver(AdjacencyMatrix g, int n) {
         this.graph = g;
@@ -26,31 +26,49 @@ public class Solver {
 
     public void solve() {
         System.out.println("solving");
+        
+        if(lookPerfectMatching()){
+            System.out.println("boy wins PM");
+            return;
+        }
+        
         int girlChose, boyChose;
         girlChose = makeFirstMove();
         while (!done) {
             boyChose = makeBoyMove(girlChose);
-
             if (boyChose == Integer.MAX_VALUE) {          // boy loses
-                winner = true;
+                girlWins = true;
                 break;
             }
-
+            
+            if(done){
+                break;
+            }
+            
             graph.wipeActress(girlChose);
 
             girlChose = makeGirlMove(boyChose);
             if (girlChose == Integer.MAX_VALUE) {         // girl loses
-                winner = false;
+                girlWins = false;
                 break;
             }
             graph.wipeActor(boyChose);
         }
-        if (winner) {
+        if (girlWins) {
             System.out.println("girl wins");
         } else {
             System.out.println("boy wins");
         }
 
+    }
+    
+    private boolean lookPerfectMatching(){
+        for(int i = 0; i < totalNumber; i++){
+            if(graph.getAdjacentActors(i).length != 1){
+                return false;
+            }
+        }
+        return true;
     }
 
     private int makeFirstMove() {
@@ -77,12 +95,15 @@ public class Solver {
         if (graph.getAdjacentActresses(chosen).length == 0) {     // give up
             return choice;
         }
-        for (int i : graph.getAdjacentActresses(chosen)) {
-            if (graph.getAdjacentActors(i).length == 0) {     // free win for girl
+        int[] arrayToTest = graph.getAdjacentActresses(chosen);
+        for (int i : arrayToTest) {
+            if (graph.getAdjacentActors(i).length == 2 && graph.getAdjacent(i, chosen)
+                || graph.getAdjacentActors(i).length == 1 && !graph.getAdjacent(i, chosen)     ) {     // free win for girl
                 System.out.println("girl free win");
+                girlWins = true;
                 done = true;
                 return i;
-            } else if (graph.getAdjacentActors(i).length == 1) {    // 1 matching actor, this actor has no dead end
+            } else if (graph.getAdjacentActors(i).length == 2) {    // 1 matching actor, this actor has no dead end
                 if (graph.getAdjacentActresses(graph.getAdjacentActors(i)[0]).length > 0) {
                     choice = i;
                 }
@@ -99,13 +120,14 @@ public class Solver {
             return choice;
         }
         for (int i : graph.getAdjacentActors(chosen)) {
-            if (graph.getAdjacentActresses(i).length == 1) {
+            if (graph.getAdjacentActresses(i).length  == 2 && graph.getAdjacent(chosen, i)
+                || graph.getAdjacentActresses(i).length  == 1 && !graph.getAdjacent(chosen, i)) {           
                 // free win for boy
                 System.out.println("boy free win");
                 done = true;
-                winner = false;
+                girlWins = false;
                 return i;
-            } else if (graph.getAdjacentActresses(i).length == 1) {
+            } else if (graph.getAdjacentActresses(i).length == 2) {
                 if (graph.getAdjacentActors(graph.getAdjacentActresses(i)[0]).length > 0) {
                     choice = i;
                 }
